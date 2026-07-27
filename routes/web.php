@@ -79,7 +79,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/run-migrate', function () {
-    \Illuminate\Support\Facades\Artisan::call('migrate --force');
-    return 'Database migration berhasil!';
-});
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate --force');
+        return 'Database migration berhasil!';
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+})->withoutMiddleware([\Illuminate\Session\Middleware\StartSession::class]);
 require __DIR__ . '/auth.php';
