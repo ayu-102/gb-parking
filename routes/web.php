@@ -78,4 +78,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/settings/password', [SettingController::class, 'updatePassword'])->name('settings.updatePassword');
 });
 
+Route::get('/run-migrate', function () {
+    \Illuminate\Support\Facades\Artisan::call('migrate --force');
+    return 'Database migration berhasil!';
+});
 require __DIR__ . '/auth.php';
