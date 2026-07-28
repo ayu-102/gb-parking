@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\DepartmentController;
@@ -80,10 +81,16 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/run-migrate', function () {
     try {
-        \Illuminate\Support\Facades\Artisan::call('migrate --force');
-        return 'Database migration berhasil!';
+        Artisan::call('migrate --force');
+        Artisan::call('db:seed --force');
+
+        return response('<h1>✅ Database Migration & Seed Berhasil!</h1>');
     } catch (\Exception $e) {
-        return 'Error: ' . $e->getMessage();
+        return response('<h1>❌ Error:</h1> <pre>' . $e->getMessage() . '</pre>', 500);
     }
-})->withoutMiddleware([\Illuminate\Session\Middleware\StartSession::class]);
+})->withoutMiddleware([
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+]);
+
 require __DIR__ . '/auth.php';
