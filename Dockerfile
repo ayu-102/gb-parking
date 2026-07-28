@@ -1,6 +1,6 @@
 FROM php:8.3-fpm
 
-# Install dependencies sistem
+# Install dependencies sistem + supervisor
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    nginx
+    nginx \
+    supervisor
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -35,6 +36,10 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 # Copy Nginx Configuration
 COPY .docker/nginx.conf /etc/nginx/sites-available/default
 
+# Copy Supervisor Configuration (Buat nge-run Nginx & PHP-FPM)
+COPY .docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 EXPOSE 80
 
-CMD service nginx start && php-fpm
+# Jalankan Supervisor sebagai main process
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
