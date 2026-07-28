@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\DepartmentController;
@@ -79,18 +78,5 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/settings/password', [SettingController::class, 'updatePassword'])->name('settings.updatePassword');
 });
 
-Route::get('/run-migrate', function () {
-    try {
-        Artisan::call('migrate --force');
-        Artisan::call('db:seed --force');
-
-        return response('<h1>✅ Database Migration & Seed Berhasil!</h1>');
-    } catch (\Exception $e) {
-        return response('<h1>❌ Error:</h1> <pre>' . $e->getMessage() . '</pre>', 500);
-    }
-})->withoutMiddleware([
-    \Illuminate\Session\Middleware\StartSession::class,
-    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-]);
 
 require __DIR__ . '/auth.php';
