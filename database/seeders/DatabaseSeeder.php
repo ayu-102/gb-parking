@@ -104,7 +104,7 @@ class DatabaseSeeder extends Seeder
 
         // 6. Data Dummy Karyawan
 
-        // Karyawan 1: Budi Santoso (Karyawan Tetap)
+        // Karyawan 1: Budi Santoso (Karyawan Kontrak)
         $userBudi = User::updateOrCreate(
             ['email' => 'budi@gbparking.com'],
             [
@@ -125,13 +125,13 @@ class DatabaseSeeder extends Seeder
                 'position_id'       => $posSpv->id,
                 'location_id'       => $locMall->id,
                 'basic_salary'      => 4500000,
-                'employee_type'     => 'Tetap',
-                'contract_end_date' => null,
+                'employee_type'     => 'Kontrak',
+                'contract_end_date' => now()->addYear()->format('Y-m-d'), // Kontrak 1 tahun dari sekarang
                 'status'            => 'Aktif',
             ]
         );
 
-        // Karyawan 2: Salehudin (Karyawan Kontrak)
+        // Karyawan 2: Salehudin (Karyawan Harian)
         $userSaleh = User::updateOrCreate(
             ['email' => 'saleh@gbparking.com'],
             [
@@ -151,9 +151,9 @@ class DatabaseSeeder extends Seeder
                 'department_id'     => $deptOps->id,
                 'position_id'       => $posAtt->id,
                 'location_id'       => $locAirport->id,
-                'basic_salary'      => 3800000,
-                'employee_type'     => 'Kontrak',
-                'contract_end_date' => now()->addYear()->format('Y-m-d'), // Kontrak 1 tahun dari sekarang
+                'basic_salary'      => 150000, // Rate harian
+                'employee_type'     => 'Harian',
+                'contract_end_date' => null,
                 'status'            => 'Aktif',
             ]
         );
