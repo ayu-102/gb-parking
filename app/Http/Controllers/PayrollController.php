@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\Bonus;
+use App\Models\Presence; // Sesuaikan jika nama model absensi Anda berbeda
 use Illuminate\Http\Request;
 
 class PayrollController extends Controller
@@ -12,74 +13,103 @@ class PayrollController extends Controller
     public function index(Request $request)
     {
         $selectedMonth = $request->get('month', date('Y-m'));
+        $payrollType   = $request->get('payroll_type', 'Bulanan');
+        $selectedDate  = $request->get('date');
 
-        // Cuma tampilkan yang statusnya 'draft' atau 'rejected' (Yang 'approved' otomatis hilang dari sini!)
-        $payrolls = Payroll::with('employee')
-            ->where('month_year', $selectedMonth)
-            ->whereIn('status', ['draft', 'rejected'])
-            ->latest()
-            ->paginate(10);
+        $query = Payroll::with('employee')
+            ->whereIn('status', ['draft', 'rejected']);
 
-        return view('payrolls.index', compact('payrolls', 'selectedMonth'));
+        // Filter Tipe Penggajian
+        if ($payrollType === 'Harian') {
+            $query->where('payroll_type', 'Harian');
+
+            // Jika user memilih tanggal spesifik
+            if ($request->filled('date')) {
+                $query->where('payroll_date', $selectedDate);
+            } else {
+                // Tampilkan semua payroll harian yang terjadi pada bulan & tahun terpilih
+                $query->where(function ($q) use ($selectedMonth) {
+                    $q->where('month_year', $selectedMonth)
+                        ->orWhere('payroll_date', 'like', $selectedMonth . '%');
+                });
+            }
+        } else {
+            $query->where('payroll_type', 'Bulanan')
+                ->where('month_year', $selectedMonth);
+        }
+
+        $payrolls = $query->latest()->paginate(10);
+
+        return view('payrolls.index', compact('payrolls', 'selectedMonth', 'payrollType', 'selectedDate'));
     }
 
     public function create()
     {
-        $employees = Employee::all();
+        // Tarik semua karyawan aktif untuk dropdown
+        $employees = Employee::where('status', 'Aktif')->get();
         return view('payrolls.create', compact('employees'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'month_year'  => 'required|string',
-            'notes'       => 'nullable|string',
+            'employee_id'  => 'required|exists:employees,id',
+            'payroll_type' => 'required|in:Bulanan,Harian',
+            'month_year'   => 'nullable|string',
+            'payroll_date' => 'nullable|date',
+            'notes'        => 'nullable|string',
         ]);
 
-        $employee = Employee::find($request->employee_id);
+        $employee = Employee::findOrFail($request->employee_id);
         $basicSalary = $employee->basic_salary ?? 0;
 
-        // 1. Hitung Otomatis BPJS & Pajak Berdasarkan Persentase Gaji Pokok
-        // (Bisa disesuaikan persentasenya, misal: BPJS 3%, Pajak PPh21 5%)
-        $bpjsDeduction = $basicSalary * 0.03; // 3% dari Gaji Pokok
-        $taxDeduction  = $basicSalary * 0.05; // 5% dari Gaji Pokok
+        // Pakai langsung tipe yang dikirim dari form
+        $payrollType = $request->payroll_type;
 
-        // 2. Ambil Potongan Kasbon / Lainnya dari Tabel 'deductions' (Misal: Kasbon Rp 50.000)
-        $otherDeductions = 0;
-        if (class_exists('\App\Models\Deduction')) {
-            $otherDeductions = \App\Models\Deduction::where('employee_id', $employee->id)->sum('amount');
+        if ($payrollType === 'Harian') {
+            $bpjsDeduction = 0;
+            $taxDeduction  = 0;
+
+            $payrollDate = $request->payroll_date ?? date('Y-m-d');
+            $monthYear   = date('Y-m', strtotime($payrollDate));
+
+            $totalBonus = Bonus::where('employee_id', $employee->id)
+                ->whereDate('date', $payrollDate)
+                ->sum('amount');
+        } else {
+            $bpjsDeduction = $basicSalary * 0.03;
+            $taxDeduction  = $basicSalary * 0.05;
+
+            $monthYear   = $request->month_year ?? date('Y-m');
+            $payrollDate = null;
+
+            $totalBonus = Bonus::where('employee_id', $employee->id)
+                ->where('month_year', $monthYear)
+                ->sum('amount');
         }
 
-        // 3. Ambil Potongan Komponen Gaji Tambahan (jika ada)
-        $deductionFromComponent = \App\Models\SalaryComponent::where('type', 'deduction')->sum('amount');
-
-        // TOTAL SEMUA POTONGAN (BPJS + Pajak + Kasbon/Potongan Lain)
-        $totalDeduction = $bpjsDeduction + $taxDeduction + $otherDeductions + $deductionFromComponent;
-
-        // 4. Hitung Pendapatan
-        $totalBonus = Bonus::where('employee_id', $employee->id)
-            ->where('date', 'like', $request->month_year . '%')
-            ->sum('amount');
-
-        $totalAllowance = \App\Models\SalaryComponent::where('type', 'allowance')->sum('amount');
-
-        // 5. Gaji Bersih (Take Home Pay)
-        $netSalary = ($basicSalary + $totalAllowance + $totalBonus) - $totalDeduction;
+        $totalDeduction = $bpjsDeduction + $taxDeduction;
+        $netSalary      = ($basicSalary + $totalBonus) - $totalDeduction;
 
         Payroll::create([
             'employee_id'     => $employee->id,
-            'month_year'      => $request->month_year,
+            'payroll_type'    => $payrollType, // Menyimpan Harian/Bulanan sesuai request
+            'month_year'      => $monthYear,
+            'payroll_date'    => $payrollDate,
             'basic_salary'    => $basicSalary,
-            'total_allowance' => $totalAllowance,
             'total_bonus'     => $totalBonus,
+            'bpjs_deduction'  => $bpjsDeduction,
+            'tax_deduction'   => $taxDeduction,
             'total_deduction' => $totalDeduction,
             'net_salary'      => $netSalary,
             'status'          => 'draft',
             'notes'           => $request->notes,
         ]);
 
-        return redirect()->route('payrolls.index')->with('success', 'Payroll & Potongan BPJS/Pajak berhasil dipotong otomatis!');
+        return redirect()->route('payrolls.index', [
+            'payroll_type' => $payrollType,
+            'month'        => $monthYear
+        ])->with('success', 'Draft Payroll berhasil dibuat!');
     }
 
     public function edit(Payroll $payroll)
@@ -97,22 +127,20 @@ class PayrollController extends Controller
             'notes' => $request->notes,
         ]);
 
-        return redirect()->route('payrolls.index')->with('success', 'Catatan payroll berhasil diperbarui!');
+        return redirect()->route('payrolls.index')->with('success', 'Catatan Payroll berhasil diperbarui!');
     }
 
     public function destroy(Payroll $payroll)
     {
         $payroll->delete();
-        return redirect()->route('payrolls.index')->with('success', 'Data draft payroll berhasil dihapus!');
+        return redirect()->back()->with('success', 'Draft Payroll berhasil dihapus!');
     }
 
     public function approval(Request $request)
     {
         $selectedMonth = $request->get('month', date('Y-m'));
 
-        // Cuma tampilkan yang butuh keputusan: status 'draft'
         $payrolls = Payroll::with('employee')
-            ->where('month_year', $selectedMonth)
             ->where('status', 'draft')
             ->latest()
             ->paginate(10);
@@ -120,19 +148,15 @@ class PayrollController extends Controller
         return view('payrolls.approval', compact('payrolls', 'selectedMonth'));
     }
 
-    // 2. Aksi ACC / Approve
     public function approve(Payroll $payroll)
     {
         $payroll->update(['status' => 'approved']);
-
         return redirect()->back()->with('success', 'Payroll berhasil disetujui (Approved)!');
     }
 
-    // 3. Aksi Tolak / Reject
     public function reject(Payroll $payroll)
     {
         $payroll->update(['status' => 'rejected']);
-
         return redirect()->back()->with('error', 'Payroll telah ditolak (Rejected).');
     }
 
@@ -140,7 +164,6 @@ class PayrollController extends Controller
     {
         $selectedMonth = $request->get('month', date('Y-m'));
 
-        // CUMA tampilkan yang SUDAH 'approved' (Di sini datanya bakal aman & tersimpan terus!)
         $payrolls = Payroll::with('employee')
             ->where('month_year', $selectedMonth)
             ->where('status', 'approved')
@@ -152,9 +175,7 @@ class PayrollController extends Controller
 
     public function printSlip(Payroll $payroll)
     {
-        // Memastikan relasi karyawan terload
         $payroll->load('employee');
-
         return view('payrolls.print', compact('payroll'));
     }
 }

@@ -8,7 +8,6 @@
                 <i class="fa-solid fa-triangle-exclamation mr-1"></i> {{ $message }}
             </div>
         @else
-            <!-- 1. WELCOME BANNER -->
             <!-- 1. WELCOME BANNER & DETAIL SHIFT AKTIF -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- BANNER MENYAPA KARYAWAN (2 KOLOM) -->
@@ -37,7 +36,7 @@
                     </div>
                 </div>
 
-                <!-- CARD DETAIL SHIFT HARI INI (1 KOLOM - SANGAT JELAS) -->
+                <!-- CARD DETAIL SHIFT HARI INI (1 KOLOM) -->
                 <div
                     class="bg-slate-900 rounded-3xl p-6 text-white shadow-xl flex flex-col justify-between border border-slate-800 relative overflow-hidden">
                     <div class="flex items-center justify-between relative z-10">
@@ -168,8 +167,11 @@
                 </div>
             </div>
 
-            <!-- 3. STAT CARDS GRID -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- 3. STAT CARDS GRID (DINAMIS SESUAI TIPE KARYAWAN) -->
+            <div
+                class="grid grid-cols-1 sm:grid-cols-2 {{ ($employee->employee_type ?? 'Tetap') === 'Harian' ? 'lg:grid-cols-3' : 'lg:grid-cols-4' }} gap-4">
+
+                <!-- CARD 1: HADIR BULAN INI -->
                 <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">HADIR BULAN INI</p>
@@ -185,6 +187,7 @@
                     </div>
                 </div>
 
+                <!-- CARD 2: TERLAMBAT -->
                 <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TERLAMBAT</p>
@@ -201,19 +204,48 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SISA CUTI</p>
-                        <h2 class="text-2xl font-black text-slate-800 mt-1">{{ $employee->leave_quota ?? 12 }} <span
-                                class="text-xs font-bold text-slate-400">Hari</span></h2>
-                        <p class="text-[10px] font-bold text-slate-400 mt-1">Hak Cuti Tahunan</p>
-                    </div>
+                <!-- CARD 3: HANYA MUNCUL UNTUK KONTRAK & TETAP (HARIAN DISEMBUNYIKAN) -->
+                @if (($employee->employee_type ?? 'Tetap') === 'Kontrak')
+                    @php
+                        $daysLeft = $employee->contract_end_date
+                            ? \Carbon\Carbon::now()->diffInDays($employee->contract_end_date, false)
+                            : null;
+                    @endphp
                     <div
-                        class="w-11 h-11 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-base font-bold">
-                        <i class="fa-solid fa-calendar-days"></i>
+                        class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">BATAS KONTRAK</p>
+                            <h2
+                                class="text-xl font-black {{ $daysLeft !== null && $daysLeft <= 30 ? 'text-amber-500' : 'text-slate-800' }} mt-1">
+                                {{ $daysLeft !== null ? ($daysLeft >= 0 ? ceil($daysLeft) . ' Hari' : 'Expired') : '-' }}
+                            </h2>
+                            <p class="text-[10px] font-bold text-slate-400 mt-1 truncate max-w-[120px]">
+                                s.d
+                                {{ $employee->contract_end_date ? $employee->contract_end_date->isoFormat('D MMM YYYY') : 'Tidak Diatur' }}
+                            </p>
+                        </div>
+                        <div
+                            class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-base font-bold shrink-0">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
                     </div>
-                </div>
+                @elseif(($employee->employee_type ?? 'Tetap') === 'Tetap')
+                    <div
+                        class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SISA CUTI</p>
+                            <h2 class="text-2xl font-black text-slate-800 mt-1">{{ $employee->leave_quota ?? 12 }} <span
+                                    class="text-xs font-bold text-slate-400">Hari</span></h2>
+                            <p class="text-[10px] font-bold text-slate-400 mt-1">Hak Cuti Tahunan</p>
+                        </div>
+                        <div
+                            class="w-11 h-11 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-base font-bold shrink-0">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                    </div>
+                @endif
 
+                <!-- CARD 4: SLIP GAJI TERAKHIR -->
                 <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">SLIP GAJI TERAKHIR</p>
@@ -235,6 +267,7 @@
                         <i class="fa-solid fa-file-invoice-dollar"></i>
                     </div>
                 </div>
+
             </div>
 
             <!-- 4. RIWAYAT ABSENSI & INFORMASI SAYA -->
@@ -308,6 +341,20 @@
                     </div>
 
                     <div class="space-y-3 text-xs">
+                        <!-- MENAMPILKAN STATUS KERJA / TIPE KARYAWAN -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 font-medium">Status Kerja</span>
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[10px] font-bold
+                                {{ ($employee->employee_type ?? 'Tetap') === 'Tetap'
+                                    ? 'bg-blue-100 text-blue-600'
+                                    : (($employee->employee_type ?? 'Tetap') === 'Kontrak'
+                                        ? 'bg-amber-100 text-amber-600'
+                                        : 'bg-purple-100 text-purple-600') }}">
+                                {{ $employee->employee_type ?? 'Tetap' }}
+                            </span>
+                        </div>
+
                         <div class="flex justify-between items-center">
                             <span class="text-slate-400 font-medium">Jabatan</span>
                             <span
@@ -316,7 +363,6 @@
 
                         <div class="flex justify-between items-center">
                             <span class="text-slate-400 font-medium">Departemen</span>
-                            <!-- Dihubungkan langsung dari Position ke Department -->
                             <span class="font-bold text-slate-700 text-right">
                                 {{ $employee->department->name ?? ($employee->position->department->name ?? 'Belum Diatur') }}
                             </span>
@@ -413,7 +459,7 @@
                     height: 330,
                     image_format: 'jpeg',
                     jpeg_quality: 80,
-                    flip_horiz: true // <-- Ubah jadi TRUE jika tampilan default kamera laptop kamu sudah terbalik secara hardware
+                    flip_horiz: true
                 });
                 Webcam.attach('#my_camera');
             }

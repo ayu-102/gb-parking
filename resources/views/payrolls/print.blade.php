@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slip Gaji - {{ $payroll->employee->name ?? 'Karyawan' }} ({{ $payroll->month_year }})</title>
+    <title>Slip Gaji - {{ $payroll->employee->name ?? 'Karyawan' }}
+        ({{ $payroll->payroll_type == 'Harian' ? $payroll->payroll_date : $payroll->month_year }})</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -22,7 +23,6 @@
 
 <body class="bg-slate-100 font-sans p-6 min-h-screen flex flex-col items-center justify-center">
 
-    <!-- Tombol Cetak / Kembali (Hanya tampil di layar) -->
     <div class="no-print w-full max-w-2xl flex justify-between items-center mb-4">
         <a href="javascript:window.close();" class="text-xs font-bold text-slate-600 hover:text-slate-800">
             &larr; Tutup Halaman
@@ -33,104 +33,86 @@
         </button>
     </div>
 
-    <!-- Container Slip Gaji Resmi -->
-    <div class="bg-white w-full max-w-2xl border border-slate-200 p-8 rounded-2xl shadow-sm text-slate-800">
-
-        <!-- Header Perusahaan -->
-        <div class="flex justify-between items-start border-b border-slate-200 pb-4 mb-6">
+    <div class="bg-white w-full max-w-2xl p-8 rounded-2xl border border-slate-200 shadow-xl">
+        <div class="flex items-center justify-between pb-6 border-b border-slate-200">
             <div>
-                <h1 class="text-xl font-black tracking-wider text-slate-900 uppercase">GB PARKING</h1>
-                <p class="text-[11px] text-slate-500">Sistem Penggajian & Manajemen Karyawan</p>
+                <h1 class="text-xl font-extrabold text-slate-800 tracking-tight">GB PARKING SYSTEM</h1>
+                <p class="text-xs text-slate-500">Slip Gaji Resmi Karyawan ({{ $payroll->payroll_type ?? 'Bulanan' }})
+                </p>
             </div>
             <div class="text-right">
-                <span
-                    class="px-3 py-1 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-full uppercase">SLIP
-                    GAJI RESMI</span>
-                <p class="text-xs font-semibold text-slate-600 mt-1">Periode: {{ $payroll->month_year }}</p>
+                <span class="px-3 py-1 bg-orange-100 text-[#FF6B00] text-xs font-bold rounded-lg uppercase">
+                    {{ $payroll->status }}
+                </span>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Periode:
+                    {{ $payroll->payroll_type == 'Harian' ? \Carbon\Carbon::parse($payroll->payroll_date)->format('d M Y') : $payroll->month_year }}
+                </p>
             </div>
         </div>
 
-        <!-- Identitas Karyawan -->
-        <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl text-xs mb-6">
+        <div
+            class="grid grid-cols-2 gap-4 my-6 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
-                <p class="text-slate-400">Nama Karyawan:</p>
+                <p class="text-slate-400 font-medium">Nama Karyawan:</p>
                 <p class="font-bold text-slate-800 text-sm">{{ $payroll->employee->name ?? '-' }}</p>
             </div>
             <div>
-                <p class="text-slate-400">NIK / ID Karyawan:</p>
-                <p class="font-bold text-slate-800 text-sm">{{ $payroll->employee->nik ?? '-' }}</p>
+                <p class="text-slate-400 font-medium">NIK:</p>
+                <p class="font-bold text-slate-800">{{ $payroll->employee->nik ?? '-' }}</p>
+            </div>
+            <div>
+                <p class="text-slate-400 font-medium">Jabatan / Tipe:</p>
+                <p class="font-semibold">{{ $payroll->employee->position->name ?? '-' }}
+                    ({{ $payroll->employee->employee_type ?? 'Tetap' }})</p>
+            </div>
+            <div>
+                <p class="text-slate-400 font-medium">Lokasi Kerja:</p>
+                <p class="font-semibold">{{ $payroll->employee->location->name ?? '-' }}</p>
             </div>
         </div>
 
-        <div class="space-y-4">
-            <!-- RINCIAN PENERIMAAN & POTONGAN -->
-            <div class="border-b border-slate-200 pb-2">
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Rincian Penerimaan & Potongan</h3>
-            </div>
-
-            <!-- TABEL 2 KOLOM (PENDAPATAN VS POTONGAN) -->
-            <div class="grid grid-cols-2 gap-6 text-xs">
-
-                <!-- KOLOM PENDAPATAN -->
-                <div class="space-y-2">
-                    <p class="font-bold text-slate-700 border-b pb-1 text-[11px] uppercase tracking-wide">Penerimaan
-                        (Income)</p>
-                    <div class="flex justify-between py-1 border-b border-slate-100">
-                        <span class="text-slate-600">Gaji Pokok</span>
-                        <span class="font-mono font-bold text-slate-800">Rp
-                            {{ number_format($payroll->basic_salary, 0, ',', '.') }}</span>
+        <div class="space-y-4 text-xs">
+            <div>
+                <h3 class="font-bold text-slate-800 uppercase tracking-wider mb-2 text-[11px] text-[#FF6B00]">A.
+                    PENDAPATAN</h3>
+                <div class="space-y-1.5 pl-2">
+                    <div class="flex justify-between text-slate-600">
+                        <span>Gaji Pokok / Rate Harian</span>
+                        <span class="font-semibold">Rp {{ number_format($payroll->basic_salary, 0, ',', '.') }}</span>
                     </div>
-                    <div class="flex justify-between py-1 border-b border-slate-100">
-                        <span class="text-slate-600">Total Tunjangan</span>
-                        <span class="font-mono font-semibold text-blue-600">+ Rp
-                            {{ number_format($payroll->total_allowance, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between py-1 border-b border-slate-100">
-                        <span class="text-slate-600">Total Bonus & Insentif</span>
-                        <span class="font-mono font-semibold text-emerald-600">+ Rp
-                            {{ number_format($payroll->total_bonus, 0, ',', '.') }}</span>
-                    </div>
-                </div>
-
-                <!-- KOLOM POTONGAN (RINCIAN DIBREAKDOWN) -->
-                <div class="space-y-2">
-                    <p class="font-bold text-slate-700 border-b pb-1 text-[11px] uppercase tracking-wide">Potongan
-                        (Deduction)</p>
-
-                    @php
-                        $estBpjs = $payroll->basic_salary * 0.03; // BPJS 3%
-                        $estTax = $payroll->basic_salary * 0.05; // Pajak 5%
-                        $estOther = max(0, $payroll->total_deduction - ($estBpjs + $estTax)); // Kasbon
-                    @endphp
-
-                    <div class="flex justify-between py-1 border-b border-slate-100">
-                        <span class="text-slate-600">BPJS Kesehatan & Ketenagakerjaan (3%)</span>
-                        <span class="font-mono text-rose-500">- Rp {{ number_format($estBpjs, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between py-1 border-b border-slate-100">
-                        <span class="text-slate-600">Pajak PPh 21 (5%)</span>
-                        <span class="font-mono text-rose-500">- Rp {{ number_format($estTax, 0, ',', '.') }}</span>
-                    </div>
-                    @if ($estOther > 0)
-                        <div class="flex justify-between py-1 border-b border-slate-100">
-                            <span class="text-slate-600">Kasbon / Potongan Lain</span>
-                            <span class="font-mono text-rose-500">- Rp
-                                {{ number_format($estOther, 0, ',', '.') }}</span>
+                    @if ($payroll->total_bonus > 0)
+                        <div class="flex justify-between text-slate-600">
+                            <span>Bonus / Insentif</span>
+                            <span class="font-semibold text-emerald-600">+ Rp
+                                {{ number_format($payroll->total_bonus, 0, ',', '.') }}</span>
                         </div>
                     @endif
-                    <div class="flex justify-between py-1 font-bold text-rose-600 bg-rose-50/50 px-2 rounded">
-                        <span>Total Potongan</span>
-                        <span class="font-mono">- Rp {{ number_format($payroll->total_deduction, 0, ',', '.') }}</span>
-                    </div>
                 </div>
-
             </div>
 
-            <!-- TAKE HOME PAY -->
-            <div class="p-4 bg-slate-900 rounded-xl text-white flex justify-between items-center mt-4">
+            @if (($payroll->payroll_type ?? 'Bulanan') !== 'Harian')
+                <div class="pt-2 border-t border-slate-100">
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider mb-2 text-[11px] text-rose-600">B.
+                        POTONGAN</h3>
+                    <div class="space-y-1.5 pl-2">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Potongan BPJS (3%)</span>
+                            <span class="font-semibold text-rose-500">- Rp
+                                {{ number_format($payroll->bpjs_deduction, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Pajak PPh 21 (5%)</span>
+                            <span class="font-semibold text-rose-500">- Rp
+                                {{ number_format($payroll->tax_deduction, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <div class="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between mt-6">
                 <div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Gaji Bersih (Take Home Pay)
-                    </p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-orange-400">TAKE HOME PAY</p>
                     <p class="text-[10px] text-slate-300">Total Akhir Diterima Karyawan</p>
                 </div>
                 <div class="text-right">
@@ -142,12 +124,11 @@
         </div>
 
         @if ($payroll->notes)
-            <div class="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
                 <strong>Catatan:</strong> {{ $payroll->notes }}
             </div>
         @endif
 
-        <!-- Tanda Tangan -->
         <div class="grid grid-cols-2 gap-8 text-center text-xs mt-12 pt-4 border-t border-slate-100">
             <div>
                 <p class="text-slate-400 mb-12">Penerima,</p>
@@ -158,17 +139,8 @@
                 <p class="font-bold underline">Super Admin</p>
             </div>
         </div>
-
     </div>
 
-    <!-- Auto Print Script -->
-    <script>
-        // Otomatis memicu pop-up cetak saat halaman dibuka
-        window.onload = function() {
-            // Un-comment jika ingin langsung otomatis membuka window print saat tab terbuka:
-            // window.print();
-        }
-    </script>
 </body>
 
 </html>

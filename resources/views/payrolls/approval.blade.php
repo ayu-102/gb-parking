@@ -1,4 +1,39 @@
 <x-app-layout>
+
+    <style>
+        @keyframes modalShow {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes modalHide {
+            from {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+        }
+
+        .animate-modal-show {
+            animation: modalShow 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .animate-modal-hide {
+            animation: modalHide 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+
     <div class="space-y-6">
 
         <!-- HEADER PAGE -->
@@ -238,27 +273,29 @@
                                         <td class="p-4 text-center whitespace-nowrap">
                                             @if ($item->status != 'approved')
                                                 <div class="flex items-center justify-center space-x-2">
-                                                    <!-- Tombol ACC / Approve -->
-                                                    <form action="{{ route('payrolls.approve', $item->id) }}"
+                                                    <!-- Form ACC / Approve -->
+                                                    <form id="form-approve-{{ $item->id }}"
+                                                        action="{{ route('payrolls.approve', $item->id) }}"
                                                         method="POST" class="inline">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button type="submit"
-                                                            onclick="return confirm('Setujui (ACC) pengajuan penggajian karyawan ini?')"
+                                                        <button type="button"
+                                                            onclick="openActionModal('approve', 'form-approve-{{ $item->id }}', '{{ $item->employee->name ?? 'Karyawan' }}')"
                                                             class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-[11px] shadow-md shadow-emerald-500/20 transition flex items-center space-x-1">
                                                             <i class="fa-solid fa-check"></i>
                                                             <span>ACC</span>
                                                         </button>
                                                     </form>
 
-                                                    <!-- Tombol Tolak / Reject -->
+                                                    <!-- Form Tolak / Reject -->
                                                     @if ($item->status != 'rejected')
-                                                        <form action="{{ route('payrolls.reject', $item->id) }}"
+                                                        <form id="form-reject-{{ $item->id }}"
+                                                            action="{{ route('payrolls.reject', $item->id) }}"
                                                             method="POST" class="inline">
                                                             @csrf
                                                             @method('PATCH')
-                                                            <button type="submit"
-                                                                onclick="return confirm('Tolak (Reject) draft payroll ini?')"
+                                                            <button type="button"
+                                                                onclick="openActionModal('reject', 'form-reject-{{ $item->id }}', '{{ $item->employee->name ?? 'Karyawan' }}')"
                                                                 class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold rounded-xl text-[11px] transition flex items-center space-x-1">
                                                                 <i class="fa-solid fa-xmark"></i>
                                                                 <span>Tolak</span>
@@ -373,4 +410,103 @@
         </div>
 
     </div>
+
+    <!-- CUSTOM TAILWIND CONFIRMATION MODAL WITH ANIMATION -->
+    <div id="confirmationModal"
+        class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
+        <div id="modalBox"
+            class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-5 border border-slate-100 transform transition-all">
+            <!-- Icon Container -->
+            <div id="modalIconBg"
+                class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto transition-colors">
+                <i id="modalIcon" class="text-2xl"></i>
+            </div>
+
+            <!-- Text Content -->
+            <div class="text-center space-y-1">
+                <h3 id="modalTitle" class="font-bold text-slate-800 text-base">Konfirmasi Aksi</h3>
+                <p id="modalDescription" class="text-xs text-slate-500 leading-relaxed"></p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center space-x-3 pt-2">
+                <button type="button" onclick="closeActionModal()"
+                    class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition active:scale-95">
+                    Batal
+                </button>
+                <button type="button" id="btnConfirmSubmit"
+                    class="w-1/2 py-2.5 text-white font-bold rounded-xl text-xs shadow-lg transition active:scale-95">
+                    Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT UNTUK MODAL -->
+    <script>
+        let targetFormId = null;
+
+        function openActionModal(type, formId, name) {
+            targetFormId = formId;
+
+            const modal = document.getElementById('confirmationModal');
+            const modalBox = document.getElementById('modalBox');
+            const iconBg = document.getElementById('modalIconBg');
+            const icon = document.getElementById('modalIcon');
+            const title = document.getElementById('modalTitle');
+            const description = document.getElementById('modalDescription');
+            const confirmBtn = document.getElementById('btnConfirmSubmit');
+
+            if (type === 'approve') {
+                iconBg.className =
+                    "w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto";
+                icon.className = "fa-solid fa-circle-check text-2xl";
+                title.innerText = "Setujui Payroll?";
+                description.innerHTML =
+                    `Apakah kamu yakin ingin menyetujui (ACC) pengajuan penggajian untuk <b>${name}</b>?`;
+
+                confirmBtn.className =
+                    "w-1/2 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition active:scale-95";
+                confirmBtn.innerText = "Ya, Setujui";
+            } else {
+                iconBg.className =
+                    "w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto";
+                icon.className = "fa-solid fa-triangle-exclamation text-2xl";
+                title.innerText = "Tolak Payroll?";
+                description.innerHTML = `Apakah kamu yakin ingin menolak draft payroll untuk <b>${name}</b>?`;
+
+                confirmBtn.className =
+                    "w-1/2 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-500/20 transition active:scale-95";
+                confirmBtn.innerText = "Ya, Tolak";
+            }
+
+            // Tampilkan modal dengan animasi
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalBox.classList.remove('animate-modal-hide');
+                modalBox.classList.add('animate-modal-show');
+            }, 10);
+        }
+
+        function closeActionModal() {
+            const modal = document.getElementById('confirmationModal');
+            const modalBox = document.getElementById('modalBox');
+
+            modal.classList.add('opacity-0');
+            modalBox.classList.remove('animate-modal-show');
+            modalBox.classList.add('animate-modal-hide');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                targetFormId = null;
+            }, 200); // Menunggu animasi selesai sebelum disembunyikan
+        }
+
+        document.getElementById('btnConfirmSubmit').addEventListener('click', function() {
+            if (targetFormId) {
+                document.getElementById(targetFormId).submit();
+            }
+        });
+    </script>
 </x-app-layout>

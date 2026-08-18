@@ -1,6 +1,5 @@
 <x-app-layout>
     <div class="space-y-6">
-        <!-- HEADER PAGE -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Laporan Rekapitulasi Payroll</h1>
@@ -16,9 +15,7 @@
             </div>
         </div>
 
-        <!-- STATS SUMMARY CARDS (GB PARKING STYLE) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Card 1: Total Karyawan -->
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-3.5">
                 <div
                     class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base shrink-0">
@@ -33,7 +30,6 @@
                 </div>
             </div>
 
-            <!-- Card 2: Total Pendapatan Kotor -->
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-3.5">
                 <div
                     class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base shrink-0">
@@ -47,7 +43,6 @@
                 </div>
             </div>
 
-            <!-- Card 3: Total Potongan -->
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-3.5">
                 <div
                     class="w-11 h-11 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center font-bold text-base shrink-0">
@@ -61,7 +56,6 @@
                 </div>
             </div>
 
-            <!-- Card 4: Total Take Home Pay -->
             <div
                 class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-3.5 border-l-4 border-l-emerald-500">
                 <div
@@ -77,13 +71,32 @@
             </div>
         </div>
 
-        <!-- MAIN TABLE CONTAINER -->
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <!-- Filter Bar & Search Info -->
             <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
-                <form method="GET" action="{{ route('reports.payroll') }}" class="flex items-center space-x-2">
-                    <input type="month" name="month" value="{{ $selectedMonth }}"
+                <form method="GET" action="{{ route('reports.payroll') }}" class="flex flex-wrap items-center gap-2">
+
+                    <!-- Dropdown Tipe Payroll -->
+                    <select name="payroll_type" id="filter_payroll_type" onchange="toggleFilterInputs()"
                         class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-[#FF6B00] bg-white text-slate-700">
+                        <option value="Semua" {{ $payrollType == 'Semua' ? 'selected' : '' }}>Semua Tipe</option>
+                        <option value="Bulanan" {{ $payrollType == 'Bulanan' ? 'selected' : '' }}>Payroll Bulanan
+                        </option>
+                        <option value="Harian" {{ $payrollType == 'Harian' ? 'selected' : '' }}>Payroll Harian</option>
+                    </select>
+
+                    <!-- Filter Month (Untuk Bulanan & Semua Tipe) -->
+                    <div id="month_input_container">
+                        <input type="month" name="month" value="{{ $selectedMonth }}"
+                            class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-[#FF6B00] bg-white text-slate-700">
+                    </div>
+
+                    <!-- Filter Date (Khusus Payroll Harian) -->
+                    <div id="date_input_container" class="hidden">
+                        <input type="date" name="date" value="{{ $selectedDate }}"
+                            class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-[#FF6B00] bg-white text-slate-700">
+                    </div>
+
                     <button type="submit"
                         class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs transition">
                         Filter Laporan
@@ -93,20 +106,24 @@
                 <div class="flex items-center space-x-2 text-[11px] text-slate-500 font-semibold">
                     <span class="px-2.5 py-1 bg-emerald-100/80 text-emerald-700 rounded-lg">
                         <i class="fa-solid fa-calendar-day mr-1"></i>
-                        Periode: {{ \Carbon\Carbon::parse($selectedMonth)->translatedFormat('F Y') }}
+                        Periode:
+                        @if ($payrollType === 'Harian' && $selectedDate)
+                            {{ \Carbon\Carbon::parse($selectedDate)->translatedFormat('d F Y') }}
+                        @else
+                            {{ \Carbon\Carbon::parse($selectedMonth)->translatedFormat('F Y') }}
+                        @endif
                     </span>
                 </div>
             </div>
 
-            <!-- Table Data -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead
                         class="bg-slate-50 text-slate-400 font-bold border-b border-slate-100 uppercase tracking-wider">
                         <tr>
                             <th class="p-4">Karyawan</th>
-                            <th class="p-4">Periode</th>
-                            <th class="p-4">Gaji Pokok</th>
+                            <th class="p-4">Tipe & Periode</th>
+                            <th class="p-4">Gaji Pokok / Rate</th>
                             <th class="p-4">Total Tunjangan</th>
                             <th class="p-4">Total Bonus</th>
                             <th class="p-4">Total Potongan</th>
@@ -130,13 +147,21 @@
                                     </div>
                                 </td>
                                 <td class="p-4 font-semibold text-slate-600 whitespace-nowrap">
-                                    {{ \Carbon\Carbon::parse($item->month_year)->translatedFormat('M Y') }}
+                                    @if (($item->payroll_type ?? 'Bulanan') === 'Harian')
+                                        <span
+                                            class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md font-bold text-[10px] mr-1">Harian</span>
+                                        <span>{{ \Carbon\Carbon::parse($item->payroll_date)->translatedFormat('d M Y') }}</span>
+                                    @else
+                                        <span
+                                            class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-bold text-[10px] mr-1">Bulanan</span>
+                                        <span>{{ \Carbon\Carbon::parse($item->month_year)->translatedFormat('M Y') }}</span>
+                                    @endif
                                 </td>
                                 <td class="p-4 font-mono text-slate-600 whitespace-nowrap">
                                     Rp {{ number_format($item->basic_salary, 0, ',', '.') }}
                                 </td>
                                 <td class="p-4 font-mono text-blue-600 font-semibold whitespace-nowrap">
-                                    +Rp {{ number_format($item->total_allowance, 0, ',', '.') }}
+                                    +Rp {{ number_format($item->total_allowance ?? 0, 0, ',', '.') }}
                                 </td>
                                 <td class="p-4 font-mono text-emerald-600 font-semibold whitespace-nowrap">
                                     +Rp {{ number_format($item->total_bonus, 0, ',', '.') }}
@@ -158,7 +183,7 @@
                                     </div>
                                     <p class="font-bold text-slate-600 text-sm">Tidak Ada Data Laporan Payroll</p>
                                     <p class="text-xs text-slate-400 mt-1">Belum ada data gaji yang berstatus Approved
-                                        untuk periode ini.</p>
+                                        untuk kriteria/periode ini.</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -166,7 +191,6 @@
                 </table>
             </div>
 
-            <!-- PAGINATION -->
             @if (method_exists($payrolls, 'links'))
                 <div class="p-4 border-t border-slate-100 bg-slate-50/50">
                     {{ $payrolls->links() }}
@@ -174,4 +198,23 @@
             @endif
         </div>
     </div>
+
+    <script>
+        function toggleFilterInputs() {
+            const payrollType = document.getElementById('filter_payroll_type').value;
+            const monthContainer = document.getElementById('month_input_container');
+            const dateContainer = document.getElementById('date_input_container');
+
+            if (payrollType === 'Harian') {
+                monthContainer.classList.add('hidden');
+                dateContainer.classList.remove('hidden');
+            } else {
+                monthContainer.classList.remove('hidden');
+                dateContainer.classList.add('hidden');
+            }
+        }
+
+        // Jalankan saat pertama kali halaman selesai di-load
+        document.addEventListener('DOMContentLoaded', toggleFilterInputs);
+    </script>
 </x-app-layout>

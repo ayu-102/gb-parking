@@ -52,11 +52,9 @@
 
                 <!-- BIODATA KARYAWAN -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- NIK -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
-                            NIK (Nomor Induk Karyawan) <span class="text-rose-500">*</span>
-                        </label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">NIK (Nomor
+                            Induk Karyawan) <span class="text-rose-500">*</span></label>
                         <input type="text" name="nik" value="{{ old('nik', $employee->nik) }}" required
                             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('nik') border-red-500 @enderror">
                         @error('nik')
@@ -64,11 +62,9 @@
                         @enderror
                     </div>
 
-                    <!-- NAMA LENGKAP -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
-                            Nama Lengkap <span class="text-rose-500">*</span>
-                        </label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nama Lengkap
+                            <span class="text-rose-500">*</span></label>
                         <input type="text" name="name" value="{{ old('name', $employee->name) }}" required
                             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('name') border-red-500 @enderror">
                         @error('name')
@@ -78,7 +74,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- NO TELEPON -->
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">No. Whatsapp
                             / HP</label>
@@ -86,7 +81,6 @@
                             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00]">
                     </div>
 
-                    <!-- STATUS KARYAWAN -->
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Status
                             Karyawan</label>
@@ -102,8 +96,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                    <!-- DEPARTEMEN -->
                     <div>
                         <label
                             class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Departemen</label>
@@ -118,7 +110,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <!-- LOKASI PENEMPATAN -->
+
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Lokasi
                             Penempatan</label>
@@ -134,11 +126,9 @@
                         </select>
                     </div>
 
-                    <!-- JABATAN (POSITION) -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
-                            Jabatan <span class="text-rose-500">*</span>
-                        </label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Jabatan
+                            <span class="text-rose-500">*</span></label>
                         <select name="position_id" required
                             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('position_id') border-red-500 @enderror">
                             <option value="">-- Pilih Jabatan --</option>
@@ -153,33 +143,47 @@
                             <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
 
-                    <!-- GAJI POKOK -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
-                            Gaji Pokok (Rp) <span class="text-rose-500">*</span>
-                        </label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Gaji Pokok /
+                            Rate Harian (Rp) <span class="text-rose-500">*</span></label>
                         <input type="number" name="basic_salary"
                             value="{{ old('basic_salary', $employee->basic_salary) }}" required
                             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00]">
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Tipe
+                            Karyawan <span class="text-rose-500">*</span></label>
+                        <select name="employee_type" id="employee_type" required
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('employee_type') border-red-500 @enderror">
+                            <option value="Kontrak"
+                                {{ old('employee_type', $employee->employee_type) == 'Kontrak' ? 'selected' : '' }}>
+                                Kontrak</option>
+                            <option value="Tetap"
+                                {{ old('employee_type', $employee->employee_type) == 'Tetap' ? 'selected' : '' }}>Tetap
+                            </option>
+                            <option value="Harian"
+                                {{ old('employee_type', $employee->employee_type) == 'Harian' ? 'selected' : '' }}>
+                                Harian</option>
+                        </select>
+                        @error('employee_type')
+                            <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
-                <!-- TIPE KARYAWAN -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
-                        Tipe Karyawan <span class="text-rose-500">*</span>
-                    </label>
-                    <select name="employee_type" required
-                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('employee_type') border-red-500 @enderror">
-                        <option value="Kontrak"
-                            {{ old('employee_type', $employee->employee_type ?? 'Kontrak') == 'Kontrak' ? 'selected' : '' }}>
-                            Kontrak</option>
-                        <option value="Tetap"
-                            {{ old('employee_type', $employee->employee_type ?? '') == 'Tetap' ? 'selected' : '' }}>
-                            Tetap</option>
-                    </select>
-                    @error('employee_type')
+                <!-- TANGGAL BERAKHIR KONTRAK (DYNAMIC SHOW/HIDE) -->
+                <div id="contract_date_container"
+                    class="{{ old('employee_type', $employee->employee_type) == 'Kontrak' ? '' : 'hidden' }}">
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Tanggal Berakhir
+                        Kontrak <span class="text-rose-500">*</span></label>
+                    <input type="date" name="contract_end_date"
+                        value="{{ old('contract_end_date', $employee->contract_end_date ? \Carbon\Carbon::parse($employee->contract_end_date)->format('Y-m-d') : '') }}"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('contract_end_date') border-red-500 @enderror">
+                    @error('contract_end_date')
                         <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -198,4 +202,22 @@
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const employeeTypeSelect = document.getElementById('employee_type');
+            const contractDateContainer = document.getElementById('contract_date_container');
+
+            function toggleContractDate() {
+                if (employeeTypeSelect.value === 'Kontrak') {
+                    contractDateContainer.classList.remove('hidden');
+                } else {
+                    contractDateContainer.classList.add('hidden');
+                }
+            }
+
+            employeeTypeSelect.addEventListener('change', toggleContractDate);
+            toggleContractDate();
+        });
+    </script>
 </x-app-layout>

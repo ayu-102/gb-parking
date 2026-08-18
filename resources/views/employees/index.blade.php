@@ -49,7 +49,7 @@
             <!-- Card 2: Karyawan Tetap -->
             <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-3">
                 <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#FF6B00] flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-user-tie"></i> <!-- ICON SUDAH DIPERBAIKI -->
+                    <i class="fa-solid fa-user-tie"></i>
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Karyawan Tetap</p>
@@ -74,18 +74,18 @@
                 <p class="text-[11px] font-medium text-slate-400 pt-2 border-t border-slate-50">Status Kontrak</p>
             </div>
 
-            <!-- Card 4: Karyawan Baru -->
+            <!-- Card 4: Karyawan Harian -->
             <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-3">
                 <div class="w-10 h-10 rounded-xl bg-orange-50 text-[#FF6B00] flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-user-plus"></i>
+                    <i class="fa-solid fa-user-clock"></i>
                 </div>
                 <div>
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Karyawan Baru</p>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Karyawan Harian</p>
                     <h3 class="text-2xl font-black text-slate-800 mt-1">
-                        {{ $totalBaru ?? 0 }} <span class="text-xs font-normal text-slate-400">Orang</span>
+                        {{ $totalHarian ?? 0 }} <span class="text-xs font-normal text-slate-400">Orang</span>
                     </h3>
                 </div>
-                <p class="text-[11px] font-medium text-slate-400 pt-2 border-t border-slate-50">Bulan Ini</p>
+                <p class="text-[11px] font-medium text-slate-400 pt-2 border-t border-slate-50">Status Harian</p>
             </div>
         </div>
 
@@ -93,7 +93,6 @@
         <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
             <form method="GET" action="{{ route('employees.index') }}"
                 class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                <!-- Search Input -->
                 <div class="md:col-span-5 relative">
                     <input type="text" name="search" value="{{ request('search') }}"
                         placeholder="Cari karyawan (NIK, Nama...)..."
@@ -101,7 +100,6 @@
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
                 </div>
 
-                <!-- Status Filter -->
                 <div class="md:col-span-3">
                     <select name="status"
                         class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#FF6B00] text-slate-600 font-medium">
@@ -112,7 +110,6 @@
                     </select>
                 </div>
 
-                <!-- Tombol Aksi Filter -->
                 <div class="md:col-span-4 flex items-center space-x-2">
                     <button type="submit"
                         class="w-full py-2.5 bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-700 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition">
@@ -147,9 +144,10 @@
                             <th class="p-4 w-12 text-center">Foto</th>
                             <th class="p-4">NIK</th>
                             <th class="p-4">Nama Karyawan</th>
+                            <th class="p-4">Tipe & Kontrak</th>
                             <th class="p-4">Jabatan</th>
                             <th class="p-4">Lokasi Penempatan</th>
-                            <th class="p-4">Gaji Pokok</th>
+                            <th class="p-4">Gaji Pokok / Rate</th>
                             <th class="p-4 text-center">Status</th>
                             <th class="p-4 text-center">Aksi</th>
                         </tr>
@@ -171,6 +169,23 @@
                                     <div>{{ $employee->name }}</div>
                                     <div class="text-[10px] font-normal text-slate-400">{{ $employee->email ?? '-' }}
                                     </div>
+                                </td>
+                                <td class="p-4 font-medium">
+                                    @if ($employee->employee_type == 'Tetap')
+                                        <span
+                                            class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-bold text-[10px]">Tetap</span>
+                                    @elseif ($employee->employee_type == 'Harian')
+                                        <span
+                                            class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md font-bold text-[10px]">Harian</span>
+                                    @else
+                                        <span
+                                            class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md font-bold text-[10px]">Kontrak</span>
+                                        @if ($employee->contract_end_date)
+                                            <div class="text-[10px] text-slate-400 mt-0.5">s/d
+                                                {{ \Carbon\Carbon::parse($employee->contract_end_date)->format('d M Y') }}
+                                            </div>
+                                        @endif
+                                    @endif
                                 </td>
                                 <td class="p-4 text-slate-600 font-medium">
                                     {{ $employee->position->name ?? ($employee->position->title ?? 'Belum Diatur') }}
@@ -205,7 +220,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="p-12 text-center text-slate-400">
+                                <td colspan="10" class="p-12 text-center text-slate-400">
                                     <i class="fa-solid fa-users-slash text-4xl mb-3 block text-slate-300"></i>
                                     <p class="font-semibold text-sm text-slate-600">Belum ada data karyawan</p>
                                     <p class="text-xs mt-1">Klik tombol 'Tambah Karyawan' di atas untuk memasukkan data

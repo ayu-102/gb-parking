@@ -95,8 +95,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                    <!-- Departemen -->
                     <div>
                         <label
                             class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Departemen</label>
@@ -111,6 +109,7 @@
                             @endforeach
                         </select>
                     </div>
+
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Lokasi
                             Penempatan</label>
@@ -143,25 +142,48 @@
                             <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Gaji Pokok
-                            (Rp) <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                            Gaji Pokok / Rate Harian (Rp) <span class="text-rose-500">*</span>
+                        </label>
                         <input type="number" name="basic_salary" value="{{ old('basic_salary') }}" required
                             placeholder="3000000"
                             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00]">
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                            Tipe Karyawan <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="employee_type" id="employee_type" required
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('employee_type') border-red-500 @enderror">
+                            <option value="">-- Pilih Tipe Karyawan --</option>
+                            <option value="Tetap" {{ old('employee_type') == 'Tetap' ? 'selected' : '' }}>Tetap
+                            </option>
+                            <option value="Kontrak" {{ old('employee_type') == 'Kontrak' ? 'selected' : '' }}>Kontrak
+                            </option>
+                            <option value="Harian" {{ old('employee_type') == 'Harian' ? 'selected' : '' }}>Harian
+                            </option>
+                        </select>
+                        @error('employee_type')
+                            <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Tipe Karyawan
-                        <span class="text-rose-500">*</span></label>
-                    <select name="employee_type" required
-                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('employee_type') border-red-500 @enderror">
-                        <option value="Kontrak" {{ old('employee_type') == 'Kontrak' ? 'selected' : '' }}>Kontrak
-                        </option>
-                        <option value="Tetap" {{ old('employee_type') == 'Tetap' ? 'selected' : '' }}>Tetap</option>
-                    </select>
+                <!-- TANGGAL BERAKHIR KONTRAK (DYNAMIC SHOW/HIDE) -->
+                <div id="contract_date_container" class="{{ old('employee_type') == 'Kontrak' ? '' : 'hidden' }}">
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Tanggal Berakhir Kontrak <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="date" name="contract_end_date" value="{{ old('contract_end_date') }}"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#FF6B00] @error('contract_end_date') border-red-500 @enderror">
+                    @error('contract_end_date')
+                        <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="pt-4 flex justify-end space-x-3 border-t border-slate-100 mt-6">
@@ -177,4 +199,22 @@
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const employeeTypeSelect = document.getElementById('employee_type');
+            const contractDateContainer = document.getElementById('contract_date_container');
+
+            function toggleContractDate() {
+                if (employeeTypeSelect.value === 'Kontrak') {
+                    contractDateContainer.classList.remove('hidden');
+                } else {
+                    contractDateContainer.classList.add('hidden');
+                }
+            }
+
+            employeeTypeSelect.addEventListener('change', toggleContractDate);
+            toggleContractDate();
+        });
+    </script>
 </x-app-layout>

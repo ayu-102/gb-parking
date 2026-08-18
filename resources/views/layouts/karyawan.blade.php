@@ -63,11 +63,13 @@
                         <span>Absensi Live GPS</span>
                     </a>
 
-                    <a href="{{ route('employee.leaves.index') }}"
-                        class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition {{ request()->routeIs('employee.leaves.*') ? 'bg-orange-50 text-[#FF6B00]' : 'text-slate-500 hover:bg-slate-50' }}">
-                        <i class="fa-solid fa-file-signature text-sm text-[#FF6B00]"></i>
-                        <span>Pengajuan Cuti / Izin</span>
-                    </a>
+                    @if ((Auth::user()->employee->employee_type ?? 'Tetap') !== 'Harian')
+                        <a href="{{ route('employee.leaves.index') }}"
+                            class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition {{ request()->routeIs('employee.leaves.*') ? 'bg-orange-50 text-[#FF6B00]' : 'text-slate-500 hover:bg-slate-50' }}">
+                            <i class="fa-solid fa-file-signature text-sm text-[#FF6B00]"></i>
+                            <span>Pengajuan Cuti / Izin</span>
+                        </a>
+                    @endif
 
                     <a href="{{ route('presence.payrolls') }}"
                         class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-xs transition {{ request()->routeIs('presence.payrolls') ? 'bg-orange-50 text-[#FF6B00]' : 'text-slate-500 hover:bg-slate-50' }}">

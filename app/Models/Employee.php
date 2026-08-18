@@ -13,7 +13,7 @@ class Employee extends Model
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'user_id',       // <-- TAMBAHKAN INI
+        'user_id',
         'nik',
         'name',
         'email',
@@ -23,7 +23,13 @@ class Employee extends Model
         'location_id',
         'basic_salary',
         'employee_type',
+        'contract_end_date',
+        'daily_rate',
         'status',
+    ];
+
+    protected $casts = [
+        'contract_end_date' => 'date',
     ];
 
     // Relasi ke User Login

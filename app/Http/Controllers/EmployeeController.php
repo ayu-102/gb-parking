@@ -33,11 +33,12 @@ class EmployeeController extends Controller
 
         $totalTetap = Employee::where('employee_type', 'Tetap')->count();
         $totalKontrak = Employee::where('employee_type', 'Kontrak')->count();
+        $totalHarian = Employee::where('employee_type', 'Harian')->count();
         $totalBaru = Employee::whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->count();
 
-        return view('employees.index', compact('employees', 'totalTetap', 'totalKontrak', 'totalBaru'));
+        return view('employees.index', compact('employees', 'totalTetap', 'totalKontrak', 'totalHarian', 'totalBaru'));
     }
 
     public function create()
@@ -48,54 +49,53 @@ class EmployeeController extends Controller
         return view('employees.create', compact('departments', 'locations', 'positions'));
     }
 
-    /**
-     * Menyimpan data karyawan BARU sekaligus MEMBUATKAN AKUN USER LOGIN (Metode A).
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'nik'           => 'required|unique:employees,nik',
-            'name'          => 'required|string|max:255',
-            'employee_type' => 'required|in:Tetap,Kontrak',
-            'email'         => 'required|email|unique:users,email|unique:employees,email',
-            'phone'         => 'nullable|string|max:20',
-            'location_id'   => 'nullable',
-            'department_id' => 'nullable|exists:departments,id',
-            'position_id'   => 'required',
-            'basic_salary'  => 'required|numeric',
-            'status'        => 'required|in:Aktif,Nonaktif',
-            'password'      => 'required|min:6', // Password default dari Admin
+            'nik'               => 'required|unique:employees,nik',
+            'name'              => 'required|string|max:255',
+            'employee_type'     => 'required|in:Tetap,Kontrak,Harian',
+            'contract_end_date' => 'nullable|required_if:employee_type,Kontrak|date',
+            'email'             => 'required|email|unique:users,email|unique:employees,email',
+            'phone'             => 'nullable|string|max:20',
+            'location_id'       => 'nullable',
+            'department_id'     => 'nullable|exists:departments,id',
+            'position_id'       => 'required',
+            'basic_salary'      => 'required|numeric',
+            'status'            => 'required|in:Aktif,Nonaktif',
+            'password'          => 'required|min:6',
         ], [
-            'nik.required'      => 'NIK wajib diisi.',
-            'nik.unique'        => 'NIK sudah digunakan.',
-            'name.required'     => 'Nama karyawan wajib diisi.',
-            'email.required'    => 'Email wajib diisi untuk akun login karyawan.',
-            'email.unique'      => 'Email sudah terdaftar.',
-            'password.required' => 'Password default wajib diisi.',
-            'password.min'      => 'Password minimal 6 karakter.',
+            'nik.required'                  => 'NIK wajib diisi.',
+            'nik.unique'                    => 'NIK sudah digunakan.',
+            'name.required'                 => 'Nama karyawan wajib diisi.',
+            'contract_end_date.required_if' => 'Tanggal berakhir kontrak wajib diisi untuk karyawan Kontrak.',
+            'email.required'                => 'Email wajib diisi untuk akun login karyawan.',
+            'email.unique'                  => 'Email sudah terdaftar.',
+            'password.required'             => 'Password default wajib diisi.',
+            'password.min'                  => 'Password minimal 6 karakter.',
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Buat Akun User untuk Karyawan
             $user = User::create([
                 'name'     => $request->name,
                 'email'    => $request->email,
                 'password' => Hash::make($request->password),
-                'role'     => 'karyawan', // Sesuaikan jika menggunakan kolom role di User
+                'role'     => 'karyawan',
             ]);
 
-            // 2. Buat Data Karyawan dan Sambungkan ke user_id
             Employee::create([
-                'user_id'       => $user->id,
-                'nik'           => $request->nik,
-                'name'          => $request->name,
-                'email'         => $request->email,
-                'phone'         => $request->phone,
-                'location_id'   => $request->location_id,
-                'position_id'   => $request->position_id,
-                'basic_salary'  => $request->basic_salary,
-                'employee_type' => $request->employee_type,
-                'status'        => $request->status,
+                'user_id'           => $user->id,
+                'nik'               => $request->nik,
+                'name'              => $request->name,
+                'email'             => $request->email,
+                'phone'             => $request->phone,
+                'location_id'       => $request->location_id,
+                'department_id'     => $request->department_id,
+                'position_id'       => $request->position_id,
+                'basic_salary'      => $request->basic_salary,
+                'employee_type'     => $request->employee_type,
+                'contract_end_date' => $request->employee_type === 'Kontrak' ? $request->contract_end_date : null,
+                'status'            => $request->status,
             ]);
         });
 
@@ -115,23 +115,27 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $request->validate([
-            'nik'           => 'required|unique:employees,nik,' . $employee->id,
-            'name'          => 'required|string|max:255',
-            'employee_type' => 'required|in:Tetap,Kontrak',
-            'email'         => 'required|email|unique:employees,email,' . $employee->id,
-            'phone'         => 'nullable|string|max:20',
-            'location_id'   => 'nullable',
-            'department_id' => 'nullable|exists:departments,id',
-            'position_id'   => 'required',
-            'basic_salary'  => 'required|numeric',
-            'status'        => 'required|in:Aktif,Nonaktif',
+            'nik'               => 'required|unique:employees,nik,' . $employee->id,
+            'name'              => 'required|string|max:255',
+            'employee_type'     => 'required|in:Tetap,Kontrak,Harian',
+            'contract_end_date' => 'nullable|required_if:employee_type,Kontrak|date',
+            'email'             => 'required|email|unique:employees,email,' . $employee->id,
+            'phone'             => 'nullable|string|max:20',
+            'location_id'       => 'nullable',
+            'department_id'     => 'nullable|exists:departments,id',
+            'position_id'       => 'required',
+            'basic_salary'      => 'required|numeric',
+            'status'            => 'required|in:Aktif,Nonaktif',
         ]);
 
         DB::transaction(function () use ($request, $employee) {
-            // Update Data Karyawan
-            $employee->update($request->all());
+            $data = $request->all();
+            if ($request->employee_type !== 'Kontrak') {
+                $data['contract_end_date'] = null;
+            }
 
-            // Update Email & Nama di Akun User jika terhubung
+            $employee->update($data);
+
             if ($employee->user) {
                 $employee->user->update([
                     'name'  => $request->name,
@@ -146,7 +150,6 @@ class EmployeeController extends Controller
     public function destroy(Employee $employee)
     {
         DB::transaction(function () use ($employee) {
-            // Hapus akun user jika ada
             if ($employee->user) {
                 $employee->user->delete();
             }

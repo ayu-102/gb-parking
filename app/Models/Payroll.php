@@ -12,7 +12,9 @@ class Payroll extends Model
 
     protected $fillable = [
         'employee_id',
+        'payroll_type',
         'month_year',
+        'payroll_date',
         'basic_salary',
         'total_allowance',
         'total_bonus',

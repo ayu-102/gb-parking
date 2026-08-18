@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 2. Data Dummy Departemen (DIBUAT PERTAMA)
+        // 2. Data Dummy Departemen
         $deptOps = Department::firstOrCreate(
             ['code' => 'OPS'],
             ['name' => 'Operasional Parking']
@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Human Resources']
         );
 
-        // 3. Data Dummy Jabatan / Position (MENEMPEL KE DEPARTEMEN)
+        // 3. Data Dummy Jabatan / Position
         $posSpv = Position::firstOrCreate(
             ['name' => 'Supervisor Lapangan'],
             ['department_id' => $deptHrd->id]
@@ -48,8 +48,7 @@ class DatabaseSeeder extends Seeder
             ['department_id' => $deptOps->id]
         );
 
-        // 4. Data Dummy Lokasi + Latitude Longitude
-        // 4. Data Dummy Lokasi + Kota, Radius, Latitude Longitude
+        // 4. Data Dummy Lokasi
         $locMall = Location::firstOrCreate(
             ['name' => 'GB Parking - Mall Grand Indonesia'],
             [
@@ -103,9 +102,9 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 6. Data Dummy 2 Karyawan
+        // 6. Data Dummy Karyawan
 
-        // Karyawan 1: Budi Santoso
+        // Karyawan 1: Budi Santoso (Karyawan Tetap)
         $userBudi = User::updateOrCreate(
             ['email' => 'budi@gbparking.com'],
             [
@@ -118,19 +117,21 @@ class DatabaseSeeder extends Seeder
         $empBudi = Employee::firstOrCreate(
             ['nik' => 'EMP-001'],
             [
-                'user_id'       => $userBudi->id,
-                'name'          => 'Budi Santoso',
-                'email'         => 'budi@gbparking.com',
-                'phone'         => '081234567890',
-                'department_id' => $deptHrd->id,
-                'position_id'   => $posSpv->id,
-                'location_id'   => $locMall->id,
-                'basic_salary'  => 4500000,
-                'status'        => 'Aktif',
+                'user_id'           => $userBudi->id,
+                'name'              => 'Budi Santoso',
+                'email'             => 'budi@gbparking.com',
+                'phone'             => '081234567890',
+                'department_id'     => $deptHrd->id,
+                'position_id'       => $posSpv->id,
+                'location_id'       => $locMall->id,
+                'basic_salary'      => 4500000,
+                'employee_type'     => 'Tetap',
+                'contract_end_date' => null,
+                'status'            => 'Aktif',
             ]
         );
 
-        // Karyawan 2: Siti Rahma
+        // Karyawan 2: Salehudin (Karyawan Kontrak)
         $userSaleh = User::updateOrCreate(
             ['email' => 'saleh@gbparking.com'],
             [
@@ -143,15 +144,17 @@ class DatabaseSeeder extends Seeder
         $empSaleh = Employee::firstOrCreate(
             ['nik' => 'EMP-002'],
             [
-                'user_id'       => $userSaleh->id,
-                'name'          => 'Salehudin',
-                'email'         => 'salehudin@gbparking.com',
-                'phone'         => '089876543210',
-                'department_id' => $deptOps->id,
-                'position_id'   => $posAtt->id,
-                'location_id'   => $locAirport->id,
-                'basic_salary'  => 3800000,
-                'status'        => 'Aktif',
+                'user_id'           => $userSaleh->id,
+                'name'              => 'Salehudin',
+                'email'             => 'salehudin@gbparking.com',
+                'phone'             => '089876543210',
+                'department_id'     => $deptOps->id,
+                'position_id'       => $posAtt->id,
+                'location_id'       => $locAirport->id,
+                'basic_salary'      => 3800000,
+                'employee_type'     => 'Kontrak',
+                'contract_end_date' => now()->addYear()->format('Y-m-d'), // Kontrak 1 tahun dari sekarang
+                'status'            => 'Aktif',
             ]
         );
 
