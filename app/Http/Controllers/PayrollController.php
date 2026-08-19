@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\Bonus;
-use App\Models\Presence; // Sesuaikan jika nama model absensi Anda berbeda
+use App\Models\SalaryComponent; // Model komponen gaji global
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class PayrollController extends Controller
 {
@@ -23,11 +24,9 @@ class PayrollController extends Controller
         if ($payrollType === 'Harian') {
             $query->where('payroll_type', 'Harian');
 
-            // Jika user memilih tanggal spesifik
             if ($request->filled('date')) {
                 $query->where('payroll_date', $selectedDate);
             } else {
-                // Tampilkan semua payroll harian yang terjadi pada bulan & tahun terpilih
                 $query->where(function ($q) use ($selectedMonth) {
                     $q->where('month_year', $selectedMonth)
                         ->orWhere('payroll_date', 'like', $selectedMonth . '%');
@@ -45,7 +44,6 @@ class PayrollController extends Controller
 
     public function create()
     {
-        // Tarik semua karyawan aktif untuk dropdown
         $employees = Employee::where('status', 'Aktif')->get();
         return view('payrolls.create', compact('employees'));
     }
@@ -60,46 +58,79 @@ class PayrollController extends Controller
             'notes'        => 'nullable|string',
         ]);
 
-        $employee = Employee::findOrFail($request->employee_id);
+        $employee    = Employee::findOrFail($request->employee_id);
         $basicSalary = $employee->basic_salary ?? 0;
-
-        // Pakai langsung tipe yang dikirim dari form
         $payrollType = $request->payroll_type;
 
         if ($payrollType === 'Harian') {
-            $bpjsDeduction = 0;
-            $taxDeduction  = 0;
+            // === OPSI A: KARYAWAN HARIAN ===
+            // Potongan BPJS & Pajak Harian diset 0
+            $bpjsDeduction  = 0;
+            $taxDeduction   = 0;
+            $totalAllowance = 0; // Karyawan harian tidak menerima komponen tunjangan rutin bulanan
+            $extraDeduction = 0; // Karyawan harian tidak terkena potongan komponen rutin bulanan
 
             $payrollDate = $request->payroll_date ?? date('Y-m-d');
             $monthYear   = date('Y-m', strtotime($payrollDate));
 
+            // Perhitungan Bonus khusus tanggal tersebut
             $totalBonus = Bonus::where('employee_id', $employee->id)
                 ->whereDate('date', $payrollDate)
                 ->sum('amount');
         } else {
+            // === OPSI B: KARYAWAN BULANAN ===
+            $monthYear   = $request->month_year ?? date('Y-m');
+            $payrollDate = null;
+            $parsedDate  = Carbon::parse($monthYear . '-01');
+
+            // 1. Potongan Spesifik Standar (BPJS & Pajak)
             $bpjsDeduction = $basicSalary * 0.03;
             $taxDeduction  = $basicSalary * 0.05;
 
-            $monthYear   = $request->month_year ?? date('Y-m');
-            $payrollDate = null;
-
+            // 2. Bonus Spesifik Karyawan pada bulan tersebut
             $totalBonus = Bonus::where('employee_id', $employee->id)
-                ->where('month_year', $monthYear)
+                ->whereYear('date', $parsedDate->year)
+                ->whereMonth('date', $parsedDate->month)
                 ->sum('amount');
+
+            // 3. HITUNG KOMPONEN GAJI GLOBAL (Master SalaryComponents)
+            $salaryComponents = SalaryComponent::all();
+
+            $totalAllowance = 0;
+            $extraDeduction = 0;
+
+            foreach ($salaryComponents as $component) {
+                // Hitung Nominal berdasarkan tipe (Fixed / Percentage)
+                $value = 0;
+                if ($component->amount_type === 'percentage') {
+                    $value = ($basicSalary * $component->amount) / 100;
+                } else {
+                    $value = $component->amount;
+                }
+
+                // Kelompokkan ke Tunjangan (Allowance) atau Potongan (Deduction)
+                if ($component->type === 'allowance') {
+                    $totalAllowance += $value;
+                } elseif ($component->type === 'deduction') {
+                    $extraDeduction += $value;
+                }
+            }
         }
 
-        $totalDeduction = $bpjsDeduction + $taxDeduction;
-        $netSalary      = ($basicSalary + $totalBonus) - $totalDeduction;
+        // Total Potongan = (BPJS + Pajak) + Potongan Komponen Global
+        $totalDeduction = $bpjsDeduction + $taxDeduction + $extraDeduction;
+
+        // Take Home Pay (THP) = Gaji Pokok + Total Tunjangan + Total Bonus - Total Potongan
+        $netSalary = ($basicSalary + $totalAllowance + $totalBonus) - $totalDeduction;
 
         Payroll::create([
             'employee_id'     => $employee->id,
-            'payroll_type'    => $payrollType, // Menyimpan Harian/Bulanan sesuai request
+            'payroll_type'    => $payrollType,
             'month_year'      => $monthYear,
             'payroll_date'    => $payrollDate,
             'basic_salary'    => $basicSalary,
-            'total_bonus'     => $totalBonus,
-            'bpjs_deduction'  => $bpjsDeduction,
-            'tax_deduction'   => $taxDeduction,
+            'total_allowance' => $totalAllowance, // <-- DIPISAH: Tersimpan murni sebagai Tunjangan
+            'total_bonus'     => $totalBonus,     // <-- DIPISAH: Tersimpan murni sebagai Bonus
             'total_deduction' => $totalDeduction,
             'net_salary'      => $netSalary,
             'status'          => 'draft',
@@ -127,7 +158,10 @@ class PayrollController extends Controller
             'notes' => $request->notes,
         ]);
 
-        return redirect()->route('payrolls.index')->with('success', 'Catatan Payroll berhasil diperbarui!');
+        return redirect()->route('payrolls.index', [
+            'month'        => $payroll->month_year,
+            'payroll_type' => $payroll->payroll_type
+        ])->with('success', 'Catatan Payroll berhasil diperbarui!');
     }
 
     public function destroy(Payroll $payroll)

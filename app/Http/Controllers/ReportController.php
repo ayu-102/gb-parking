@@ -65,11 +65,15 @@ class ReportController extends Controller
             ->where('status', 'approved');
 
         $totalEmployees  = (clone $query)->count();
-        $totalGrossSalary = (clone $query)->get()->sum(function ($item) {
+
+        $approvedPayrolls = (clone $query)->get();
+
+        $totalGrossSalary = $approvedPayrolls->sum(function ($item) {
             return $item->basic_salary + $item->total_allowance + $item->total_bonus;
         });
 
-        $totalTax = (clone $query)->sum('tax_deduction');
+        // PERBAIKAN DI SINI: Hitung langsung 5% dari Gaji Pokok (atau dari Gaji Bruto)
+        $totalTax = (clone $query)->sum('basic_salary') * 0.05;
 
         $payrolls = $query->latest()->paginate(10);
 
@@ -95,7 +99,9 @@ class ReportController extends Controller
 
         $totalEmployees = (clone $query)->count();
         $totalBasic     = (clone $query)->sum('basic_salary');
-        $totalBpjs      = (clone $query)->sum('bpjs_deduction');
+
+        // PERBAIKAN DI SINI: Hitung langsung 3% dari total dasar gaji pokok
+        $totalBpjs      = $totalBasic * 0.03;
 
         $payrolls = $query->latest()->paginate(10);
 

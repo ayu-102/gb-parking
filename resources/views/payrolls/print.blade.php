@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slip Gaji - {{ $payroll->employee->name ?? 'Karyawan' }}
-        ({{ $payroll->payroll_type == 'Harian' ? $payroll->payroll_date : $payroll->month_year }})</title>
+        ({{ ($payroll->payroll_type ?? ($payroll->employee->employee_type ?? '')) == 'Harian' ? $payroll->payroll_date : $payroll->month_year }})
+    </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -46,7 +47,7 @@
                 </span>
                 <p class="text-[11px] text-slate-400 mt-1">
                     Periode:
-                    {{ $payroll->payroll_type == 'Harian' ? \Carbon\Carbon::parse($payroll->payroll_date)->format('d M Y') : $payroll->month_year }}
+                    {{ ($payroll->payroll_type ?? '') == 'Harian' ? \Carbon\Carbon::parse($payroll->payroll_date)->translatedFormat('d M Y') : \Carbon\Carbon::parse($payroll->month_year)->translatedFormat('F Y') }}
                 </p>
             </div>
         </div>
@@ -64,7 +65,7 @@
             <div>
                 <p class="text-slate-400 font-medium">Jabatan / Tipe:</p>
                 <p class="font-semibold">{{ $payroll->employee->position->name ?? '-' }}
-                    ({{ $payroll->employee->employee_type ?? 'Tetap' }})</p>
+                    ({{ $payroll->payroll_type ?? ($payroll->employee->employee_type ?? 'Tetap') }})</p>
             </div>
             <div>
                 <p class="text-slate-400 font-medium">Lokasi Kerja:</p>
@@ -73,43 +74,84 @@
         </div>
 
         <div class="space-y-4 text-xs">
+            <!-- A. PENDAPATAN -->
             <div>
                 <h3 class="font-bold text-slate-800 uppercase tracking-wider mb-2 text-[11px] text-[#FF6B00]">A.
                     PENDAPATAN</h3>
                 <div class="space-y-1.5 pl-2">
                     <div class="flex justify-between text-slate-600">
                         <span>Gaji Pokok / Rate Harian</span>
-                        <span class="font-semibold">Rp {{ number_format($payroll->basic_salary, 0, ',', '.') }}</span>
+                        <span class="font-semibold font-mono">Rp
+                            {{ number_format($payroll->basic_salary, 0, ',', '.') }}</span>
                     </div>
+
+                    @if ($payroll->total_allowance > 0)
+                        <div class="flex justify-between text-slate-600">
+                            <span>Tunjangan</span>
+                            <span class="font-semibold text-blue-600 font-mono">+ Rp
+                                {{ number_format($payroll->total_allowance, 0, ',', '.') }}</span>
+                        </div>
+                    @endif
+
                     @if ($payroll->total_bonus > 0)
                         <div class="flex justify-between text-slate-600">
                             <span>Bonus / Insentif</span>
-                            <span class="font-semibold text-emerald-600">+ Rp
+                            <span class="font-semibold text-emerald-600 font-mono">+ Rp
                                 {{ number_format($payroll->total_bonus, 0, ',', '.') }}</span>
                         </div>
                     @endif
                 </div>
             </div>
 
-            @if (($payroll->payroll_type ?? 'Bulanan') !== 'Harian')
+            <!-- B. LOGIKA POTONGAN DINAMIS -->
+            @php
+                $pType = $payroll->payroll_type ?? ($payroll->employee->employee_type ?? 'Bulanan');
+
+                // Jika karyawan Bulanan, hitung BPJS & Pajak
+                if ($pType === 'Bulanan') {
+                    $bpjsDeduction = $payroll->basic_salary * 0.03;
+                    $taxDeduction = $payroll->basic_salary * 0.05;
+                } else {
+                    $bpjsDeduction = 0;
+                    $taxDeduction = 0;
+                }
+
+                // Sisa potongan dari total_deduction jika ada potongan komponen lain
+                $otherDeduction = max(0, $payroll->total_deduction - ($bpjsDeduction + $taxDeduction));
+            @endphp
+
+            @if ($payroll->total_deduction > 0 || $pType === 'Bulanan')
                 <div class="pt-2 border-t border-slate-100">
                     <h3 class="font-bold text-slate-800 uppercase tracking-wider mb-2 text-[11px] text-rose-600">B.
                         POTONGAN</h3>
                     <div class="space-y-1.5 pl-2">
+                        <!-- Potongan BPJS -->
                         <div class="flex justify-between text-slate-600">
                             <span>Potongan BPJS (3%)</span>
-                            <span class="font-semibold text-rose-500">- Rp
-                                {{ number_format($payroll->bpjs_deduction, 0, ',', '.') }}</span>
+                            <span class="font-semibold text-rose-500 font-mono">- Rp
+                                {{ number_format($bpjsDeduction, 0, ',', '.') }}</span>
                         </div>
+
+                        <!-- Potongan PPh 21 -->
                         <div class="flex justify-between text-slate-600">
                             <span>Pajak PPh 21 (5%)</span>
-                            <span class="font-semibold text-rose-500">- Rp
-                                {{ number_format($payroll->tax_deduction, 0, ',', '.') }}</span>
+                            <span class="font-semibold text-rose-500 font-mono">- Rp
+                                {{ number_format($taxDeduction, 0, ',', '.') }}</span>
                         </div>
+
+                        <!-- Potongan Komponen Lainnya Jika Ada -->
+                        @if ($otherDeduction > 0)
+                            <div class="flex justify-between text-slate-600">
+                                <span>Potongan Komponen / Lainnya</span>
+                                <span class="font-semibold text-rose-500 font-mono">- Rp
+                                    {{ number_format($otherDeduction, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
                     </div>
                 </div>
             @endif
 
+            <!-- TAKE HOME PAY -->
             <div class="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between mt-6">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wider text-orange-400">TAKE HOME PAY</p>

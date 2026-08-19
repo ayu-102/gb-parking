@@ -93,11 +93,13 @@
                                             class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg inline-block">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <form action="{{ route('payrolls.destroy', $payroll->id) }}" method="POST"
-                                            class="inline-block" onsubmit="return confirm('Hapus draft payroll ini?')">
+                                        <form id="delete-form-{{ $payroll->id }}"
+                                            action="{{ route('payrolls.destroy', $payroll->id) }}" method="POST"
+                                            class="inline-block">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                                            <button type="button" onclick="confirmDelete({{ $payroll->id }})"
+                                                class="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                                                 <i class="fa-solid fa-trash"></i>
                                             </button>
                                         </form>
@@ -140,4 +142,30 @@
         </div>
 
     </div>
+
+    <!-- Script SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function confirmDelete(id) {
+            Swal.fire({
+                title: 'Hapus Draft Payroll?',
+                text: "Data yang dihapus tidak dapat dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                customClass: {
+                    popup: 'rounded-2xl',
+                    confirmButton: 'rounded-xl text-xs font-bold px-4 py-2.5',
+                    cancelButton: 'rounded-xl text-xs font-bold px-4 py-2.5'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-form-' + id).submit();
+                }
+            });
+        }
+    </script>
 </x-app-layout>

@@ -6,7 +6,8 @@
                 <p class="text-xs text-slate-500 mt-1">Karyawan: {{ $payroll->employee->name }}
                     ({{ $payroll->month_year }})</p>
             </div>
-            <a href="{{ route('payrolls.index') }}"
+            <!-- Tombol Kembali membawa parameter filter -->
+            <a href="{{ route('payrolls.index', ['month' => $payroll->month_year, 'payroll_type' => $payroll->payroll_type]) }}"
                 class="px-3.5 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs hover:bg-slate-200 transition">
                 <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
             </a>
@@ -36,7 +37,8 @@
                 </div>
 
                 <div class="pt-4 flex justify-end space-x-3">
-                    <a href="{{ route('payrolls.index') }}"
+                    <!-- Tombol Batal membawa parameter filter -->
+                    <a href="{{ route('payrolls.index', ['month' => $payroll->month_year, 'payroll_type' => $payroll->payroll_type]) }}"
                         class="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs">Batal</a>
                     <button type="submit"
                         class="px-5 py-2.5 bg-[#FF6B00] hover:bg-[#e66000] text-white font-bold rounded-xl text-xs shadow-lg shadow-orange-500/20 transition">
